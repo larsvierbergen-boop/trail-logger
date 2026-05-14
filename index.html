@@ -173,6 +173,30 @@ function detailStr(p) {
 }
 function vibrate(pat) { if(navigator.vibrate) navigator.vibrate(pat||60); }
 
+function saveSession() {
+  localStorage.setItem('trail-session', JSON.stringify({ log: log, startTime: startTime, running: running }));
+}
+
+function loadSession() {
+  try {
+    var raw = localStorage.getItem('trail-session');
+    if (!raw) return;
+    var data = JSON.parse(raw);
+    if (!data.log || !data.log.length) return;
+    log = data.log;
+    startTime = data.startTime;
+    running = data.running;
+    document.getElementById('run-clock').textContent = 'start: ' + clockStr(startTime);
+    document.getElementById('start-section').innerHTML =
+      '<div style="background:#1a2e1a;border:0.5px solid #4ade80;border-radius:14px;padding:10px 14px;display:flex;align-items:center;gap:10px;">'+
+      '<div style="width:10px;height:10px;border-radius:50%;background:#4ade80;flex-shrink:0;"></div>'+
+      '<div style="font-size:13px;color:#4ade80;font-weight:500;">Sessie hersteld — '+log.length+' items</div></div>';
+    document.getElementById('live-wrap').style.display = '';
+    renderLiveFeed();
+    updateUndoBtn();
+  } catch(e) {}
+}
+
 function startRun() {
   startTime = Date.now(); running = true;
   document.getElementById('start-section').innerHTML =
@@ -185,7 +209,7 @@ function startRun() {
 
 function addEntry(entry) {
   if(!running) return;
-  log.push(entry); vibrate(60); renderLiveFeed(); updateUndoBtn();
+  log.push(entry); vibrate(60); renderLiveFeed(); updateUndoBtn(); saveSession();
 }
 
 function logProduct(p, btn) {
@@ -206,7 +230,7 @@ function logCustom() {
 
 function undoLast() {
   if(!log.length) return;
-  log.pop(); vibrate([30,50,30]); renderLiveFeed(); updateUndoBtn();
+  log.pop(); vibrate([30,50,30]); renderLiveFeed(); updateUndoBtn(); saveSession();
 }
 
 function updateUndoBtn() {
@@ -370,6 +394,7 @@ function uploadJSON(event) {
 function resetLog() {
   if(!confirm('Log wissen?')) return;
   log=[]; startTime=null; running=false;
+  localStorage.removeItem('trail-session');
   document.getElementById('run-clock').textContent='start: —';
   document.getElementById('start-section').innerHTML='<button onclick="startRun()" style="width:100%;padding:16px;background:#4ade80;border:none;border-radius:14px;color:#0f1117;font-size:17px;font-weight:600;cursor:pointer;">▶ Start run</button>';
   document.getElementById('live-wrap').style.display='none';
@@ -390,6 +415,8 @@ function resetLog() {
 if('serviceWorker' in navigator) {
   navigator.serviceWorker.register('sw.js');
 }
+
+loadSession();
 </script>
 </body>
 </html>
